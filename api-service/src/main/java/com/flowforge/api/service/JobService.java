@@ -4,6 +4,7 @@ import com.flowforge.api.domain.Job;
 import com.flowforge.api.domain.JobStatus;
 import com.flowforge.api.dto.CreateJobRequest;
 import com.flowforge.api.dto.CreateJobResponse;
+import com.flowforge.api.dto.JobResponse;
 import com.flowforge.api.repository.JobRepository;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +18,21 @@ public class JobService {
 
     public JobService(JobRepository jobRepository) {
         this.jobRepository = jobRepository;
+    }
+
+    public JobResponse getJob(UUID id) {
+        Job job = jobRepository.findById(id)
+                .orElseThrow();
+
+        return new JobResponse(
+                job.getId(),
+                job.getJobType(),
+                job.getStatus(),
+                job.getPayload(),
+                job.getAttemptCount(),
+                job.getMaxAttempts(),
+                job.getCreatedAt()
+        );
     }
 
     public CreateJobResponse createJob(CreateJobRequest request) {

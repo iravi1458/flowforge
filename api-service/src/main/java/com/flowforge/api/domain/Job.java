@@ -43,6 +43,26 @@ public class Job {
         return status;
     }
 
+    public JobType getJobType() {
+        return jobType;
+    }
+
+    public String getPayload() {
+        return payload;
+    }
+
+    public int getAttemptCount() {
+        return attemptCount;
+    }
+
+    public int getMaxAttempts() {
+        return maxAttempts;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
     public Job(UUID id, JobType jobType, JobStatus status, String payload,
                int attemptCount, int maxAttempts, Instant createdAt) {
         this.id = id;
