@@ -7,6 +7,7 @@ import com.flowforge.api.dto.JobResponse;
 import java.util.UUID;
 import com.flowforge.api.service.JobService;
 import org.springframework.http.HttpStatus;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -26,7 +27,7 @@ public class JobController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CreateJobResponse createJob(@RequestBody CreateJobRequest request) {
+    public CreateJobResponse createJob(@Valid @RequestBody CreateJobRequest request) {
         return jobService.createJob(request);
     }
 }
