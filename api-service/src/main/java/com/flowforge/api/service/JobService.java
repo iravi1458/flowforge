@@ -6,6 +6,7 @@ import com.flowforge.api.dto.CreateJobRequest;
 import com.flowforge.api.dto.CreateJobResponse;
 import com.flowforge.api.dto.JobResponse;
 import com.flowforge.api.repository.JobRepository;
+import com.flowforge.api.exception.JobNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -22,7 +23,7 @@ public class JobService {
 
     public JobResponse getJob(UUID id) {
         Job job = jobRepository.findById(id)
-                .orElseThrow();
+                .orElseThrow(() -> new JobNotFoundException(id));
 
         return new JobResponse(
                 job.getId(),
