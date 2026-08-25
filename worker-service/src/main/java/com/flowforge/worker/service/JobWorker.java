@@ -5,6 +5,7 @@ import com.flowforge.worker.domain.JobStatus;
 import com.flowforge.worker.repository.JobRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class JobWorker {
@@ -16,8 +17,9 @@ public class JobWorker {
     }
 
     @Scheduled(fixedDelay = 5000)
+    @Transactional
     public void processNextJob() {
-        jobRepository.findFirstByStatusOrderByCreatedAtAsc(JobStatus.QUEUED)
+        jobRepository.findNextQueuedJobForUpdate()
                 .ifPresent(this::processJob);
     }
 
