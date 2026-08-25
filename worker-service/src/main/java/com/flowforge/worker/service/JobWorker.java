@@ -27,9 +27,31 @@ public class JobWorker {
         job.markRunning();
         jobRepository.save(job);
 
-        System.out.println("Processing job: " + job.getId());
+        System.out.println(
+                "Processing job: " + job.getId()
+                        + " attempt " + job.getAttemptCount()
+        );
 
-        job.markSucceeded();
+        try {
+            executeJob(job);
+            job.markSucceeded();
+        } catch (RuntimeException e) {
+            if (job.hasAttemptsRemaining()) {
+                job.markQueued();
+                System.out.println("Job failed; re-queued: " + job.getId());
+            } else {
+                job.markFailed();
+                System.out.println("Job failed permanently: " + job.getId());
+            }
+        }
+
         jobRepository.save(job);
     }
+
+    private void executeJob(Job job) {
+        if ("force-failure".equals(job.getPayload())) {
+            throw new RuntimeException("Simulated job failure");
+        }
+    }
+
 }

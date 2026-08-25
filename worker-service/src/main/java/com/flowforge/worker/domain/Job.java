@@ -65,6 +65,19 @@ public class Job {
 
     public void markRunning() {
         this.status = JobStatus.RUNNING;
+        this.attemptCount++;
+    }
+
+    public void markQueued() {
+        this.status = JobStatus.QUEUED;
+    }
+
+    public void markFailed() {
+        this.status = JobStatus.FAILED;
+    }
+
+    public boolean hasAttemptsRemaining() {
+        return this.attemptCount < this.maxAttempts;
     }
 
     public void markSucceeded() {
