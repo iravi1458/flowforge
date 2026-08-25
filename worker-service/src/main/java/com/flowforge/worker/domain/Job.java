@@ -32,6 +32,9 @@ public class Job {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "next_attempt_at")
+    private Instant nextAttemptAt;
+
     protected Job() {
     }
 
@@ -63,17 +66,25 @@ public class Job {
         return createdAt;
     }
 
+    public Instant getNextAttemptAt() {
+        return nextAttemptAt;
+    }
+
     public void markRunning() {
         this.status = JobStatus.RUNNING;
         this.attemptCount++;
+        this.nextAttemptAt = null;
     }
 
-    public void markQueued() {
+    public void scheduleRetry() {
+        long delaySeconds = 5L * (1L << (attemptCount - 1));
         this.status = JobStatus.QUEUED;
+        this.nextAttemptAt = Instant.now().plusSeconds(delaySeconds);
     }
 
     public void markFailed() {
         this.status = JobStatus.FAILED;
+        this.nextAttemptAt = null;
     }
 
     public boolean hasAttemptsRemaining() {
@@ -82,5 +93,6 @@ public class Job {
 
     public void markSucceeded() {
         this.status = JobStatus.SUCCEEDED;
+        this.nextAttemptAt = null;
     }
 }

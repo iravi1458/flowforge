@@ -14,6 +14,7 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
             SELECT *
             FROM jobs
             WHERE status = 'QUEUED'
+              AND (next_attempt_at IS NULL OR next_attempt_at <= CURRENT_TIMESTAMP)
             ORDER BY created_at
             FOR UPDATE SKIP LOCKED
             LIMIT 1

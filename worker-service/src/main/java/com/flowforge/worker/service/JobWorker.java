@@ -28,7 +28,7 @@ public class JobWorker {
         jobRepository.save(job);
 
         System.out.println(
-                "Processing job: " + job.getId()
+                "[" + java.time.Instant.now() + "] Processing job: " + job.getId()
                         + " attempt " + job.getAttemptCount()
         );
 
@@ -37,7 +37,7 @@ public class JobWorker {
             job.markSucceeded();
         } catch (RuntimeException e) {
             if (job.hasAttemptsRemaining()) {
-                job.markQueued();
+                job.scheduleRetry();
                 System.out.println("Job failed; re-queued: " + job.getId());
             } else {
                 job.markFailed();
