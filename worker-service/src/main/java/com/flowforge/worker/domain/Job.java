@@ -35,6 +35,9 @@ public class Job {
     @Column(name = "next_attempt_at")
     private Instant nextAttemptAt;
 
+    @Column(name = "scheduled_at")
+    private Instant scheduledAt;
+
     protected Job() {
     }
 
@@ -68,6 +71,10 @@ public class Job {
 
     public Instant getNextAttemptAt() {
         return nextAttemptAt;
+    }
+
+    public Instant getScheduledAt() {
+        return scheduledAt;
     }
 
     public void markRunning() {

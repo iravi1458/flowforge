@@ -32,7 +32,30 @@ public class Job {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "scheduled_at")
+    private Instant scheduledAt;
+
     protected Job() {
+    }
+
+    public Job(
+            UUID id,
+            JobType jobType,
+            JobStatus status,
+            String payload,
+            int attemptCount,
+            int maxAttempts,
+            Instant createdAt,
+            Instant scheduledAt
+    ) {
+        this.id = id;
+        this.jobType = jobType;
+        this.status = status;
+        this.payload = payload;
+        this.attemptCount = attemptCount;
+        this.maxAttempts = maxAttempts;
+        this.createdAt = createdAt;
+        this.scheduledAt = scheduledAt;
     }
 
     public UUID getId() {
@@ -63,14 +86,7 @@ public class Job {
         return createdAt;
     }
 
-    public Job(UUID id, JobType jobType, JobStatus status, String payload,
-               int attemptCount, int maxAttempts, Instant createdAt) {
-        this.id = id;
-        this.jobType = jobType;
-        this.status = status;
-        this.payload = payload;
-        this.attemptCount = attemptCount;
-        this.maxAttempts = maxAttempts;
-        this.createdAt = createdAt;
+    public Instant getScheduledAt() {
+        return scheduledAt;
     }
 }

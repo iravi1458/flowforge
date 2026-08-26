@@ -54,7 +54,8 @@ public class JobService {
                 request.payload(),
                 0,
                 request.maxAttempts(),
-                Instant.now()
+                Instant.now(),
+                request.scheduledAt()
         );
 
         jobRepository.save(job);
