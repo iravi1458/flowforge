@@ -2,6 +2,7 @@ package com.flowforge.worker.service;
 
 import com.flowforge.worker.domain.Job;
 import com.flowforge.worker.domain.JobAttempt;
+import com.flowforge.worker.event.JobDlqPublisher;
 import com.flowforge.worker.repository.JobAttemptRepository;
 import com.flowforge.worker.repository.JobRepository;
 
@@ -17,13 +18,16 @@ public class JobWorker {
 
     private final JobRepository jobRepository;
     private final JobAttemptRepository jobAttemptRepository;
+    private final JobDlqPublisher jobDlqPublisher;
 
     public JobWorker(
             JobRepository jobRepository,
-            JobAttemptRepository jobAttemptRepository
+            JobAttemptRepository jobAttemptRepository,
+            JobDlqPublisher jobDlqPublisher
     ) {
         this.jobRepository = jobRepository;
         this.jobAttemptRepository = jobAttemptRepository;
+        this.jobDlqPublisher = jobDlqPublisher;
     }
 
     @Scheduled(fixedDelay = 5000)
@@ -66,7 +70,8 @@ public class JobWorker {
                 System.out.println("Job failed; re-queued: " + job.getId());
             } else {
                 job.markFailed();
-                System.out.println("Job failed permanently: " + job.getId());
+                jobDlqPublisher.publish(job, e.getMessage());
+                System.out.println("Job failed permanently and sent to DLQ: " + job.getId());
             }
         }
 
