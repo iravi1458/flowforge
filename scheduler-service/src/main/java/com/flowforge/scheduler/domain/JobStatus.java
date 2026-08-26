@@ -1,4 +1,4 @@
-package com.flowforge.api.domain;
+package com.flowforge.scheduler.domain;
 
 public enum JobStatus {
     SCHEDULED,

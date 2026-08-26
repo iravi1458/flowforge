@@ -47,10 +47,13 @@ public class JobService {
 
     @Transactional
     public CreateJobResponse createJob(CreateJobRequest request) {
+        JobStatus initialStatus =
+                request.scheduledAt() == null ? JobStatus.QUEUED : JobStatus.SCHEDULED;
+
         Job job = new Job(
                 UUID.randomUUID(),
                 request.jobType(),
-                JobStatus.QUEUED,
+                initialStatus,
                 request.payload(),
                 0,
                 request.maxAttempts(),
