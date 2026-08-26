@@ -8,7 +8,6 @@ import com.flowforge.worker.repository.JobRepository;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -16,31 +15,32 @@ import java.util.UUID;
 @Service
 public class JobWorker {
 
+    private static final String WORKER_ID = UUID.randomUUID().toString();
+
     private final JobRepository jobRepository;
     private final JobAttemptRepository jobAttemptRepository;
     private final JobDlqPublisher jobDlqPublisher;
+    private final JobClaimService jobClaimService;
 
     public JobWorker(
             JobRepository jobRepository,
             JobAttemptRepository jobAttemptRepository,
-            JobDlqPublisher jobDlqPublisher
+            JobDlqPublisher jobDlqPublisher,
+            JobClaimService jobClaimService
     ) {
         this.jobRepository = jobRepository;
         this.jobAttemptRepository = jobAttemptRepository;
         this.jobDlqPublisher = jobDlqPublisher;
+        this.jobClaimService = jobClaimService;
     }
 
     @Scheduled(fixedDelay = 5000)
-    @Transactional
     public void processNextJob() {
-        jobRepository.findNextQueuedJobForUpdate()
+        jobClaimService.claimNextJob(WORKER_ID)
                 .ifPresent(this::processJob);
     }
 
     private void processJob(Job job) {
-        job.markRunning();
-        jobRepository.save(job);
-
         JobAttempt attempt = new JobAttempt(
                 UUID.randomUUID(),
                 job.getId(),

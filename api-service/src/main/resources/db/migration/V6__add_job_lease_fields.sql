@@ -1,0 +1,3 @@
+ALTER TABLE jobs
+ADD COLUMN lease_owner VARCHAR(255),
+ADD COLUMN lease_expires_at TIMESTAMP WITH TIME ZONE;

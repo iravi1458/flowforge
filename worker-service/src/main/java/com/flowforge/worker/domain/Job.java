@@ -38,6 +38,12 @@ public class Job {
     @Column(name = "scheduled_at")
     private Instant scheduledAt;
 
+    @Column(name = "lease_owner")
+    private String leaseOwner;
+
+    @Column(name = "lease_expires_at")
+    private Instant leaseExpiresAt;
+
     protected Job() {
     }
 
@@ -77,21 +83,35 @@ public class Job {
         return scheduledAt;
     }
 
-    public void markRunning() {
+    public String getLeaseOwner() {
+        return leaseOwner;
+    }
+
+    public Instant getLeaseExpiresAt() {
+        return leaseExpiresAt;
+    }
+
+    public void markRunning(String leaseOwner, Instant leaseExpiresAt) {
         this.status = JobStatus.RUNNING;
         this.attemptCount++;
         this.nextAttemptAt = null;
+        this.leaseOwner = leaseOwner;
+        this.leaseExpiresAt = leaseExpiresAt;
     }
 
     public void scheduleRetry() {
         long delaySeconds = 5L * (1L << (attemptCount - 1));
         this.status = JobStatus.QUEUED;
         this.nextAttemptAt = Instant.now().plusSeconds(delaySeconds);
+        this.leaseOwner = null;
+        this.leaseExpiresAt = null;
     }
 
     public void markFailed() {
         this.status = JobStatus.FAILED;
         this.nextAttemptAt = null;
+        this.leaseOwner = null;
+        this.leaseExpiresAt = null;
     }
 
     public boolean hasAttemptsRemaining() {
@@ -101,5 +121,7 @@ public class Job {
     public void markSucceeded() {
         this.status = JobStatus.SUCCEEDED;
         this.nextAttemptAt = null;
+        this.leaseOwner = null;
+        this.leaseExpiresAt = null;
     }
 }
