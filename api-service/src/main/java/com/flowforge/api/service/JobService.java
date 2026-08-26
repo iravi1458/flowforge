@@ -7,6 +7,8 @@ import com.flowforge.api.dto.CreateJobResponse;
 import com.flowforge.api.dto.JobResponse;
 import com.flowforge.api.repository.JobRepository;
 import com.flowforge.api.exception.JobNotFoundException;
+import com.flowforge.api.event.JobCreatedEvent;
+import com.flowforge.api.event.JobEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -16,9 +18,14 @@ import java.util.UUID;
 public class JobService {
 
     private final JobRepository jobRepository;
+    private final JobEventPublisher jobEventPublisher;
 
-    public JobService(JobRepository jobRepository) {
+    public JobService(
+            JobRepository jobRepository,
+            JobEventPublisher jobEventPublisher
+    ) {
         this.jobRepository = jobRepository;
+        this.jobEventPublisher = jobEventPublisher;
     }
 
     public JobResponse getJob(UUID id) {
@@ -49,6 +56,10 @@ public class JobService {
         );
 
         jobRepository.save(job);
+
+        jobEventPublisher.publish(
+                new JobCreatedEvent(job.getId(), job.getJobType())
+        );
 
         return new CreateJobResponse(
                 job.getId(),
