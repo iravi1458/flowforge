@@ -23,4 +23,19 @@ public interface JobRepository extends JpaRepository<Job, UUID> {
         nativeQuery = true
     )
     Optional<Job> findNextQueuedJobForUpdate();
+
+    @Query(
+        value = """
+            SELECT *
+            FROM jobs
+            WHERE status = 'RUNNING'
+              AND lease_expires_at IS NOT NULL
+              AND lease_expires_at <= CURRENT_TIMESTAMP
+            ORDER BY lease_expires_at
+            FOR UPDATE SKIP LOCKED
+            LIMIT 1
+            """,
+        nativeQuery = true
+    )
+    Optional<Job> findNextExpiredLeaseForUpdate();
 }
