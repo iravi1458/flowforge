@@ -5,11 +5,13 @@ import com.flowforge.api.domain.JobStatus;
 import com.flowforge.api.dto.CreateJobRequest;
 import com.flowforge.api.dto.CreateJobResponse;
 import com.flowforge.api.dto.JobResponse;
-import com.flowforge.api.repository.JobRepository;
+import com.flowforge.api.event.OutboxEvent;
 import com.flowforge.api.exception.JobNotFoundException;
-import com.flowforge.api.event.JobCreatedEvent;
-import com.flowforge.api.event.JobEventPublisher;
+import com.flowforge.api.repository.JobRepository;
+import com.flowforge.api.repository.OutboxEventRepository;
+
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -18,14 +20,14 @@ import java.util.UUID;
 public class JobService {
 
     private final JobRepository jobRepository;
-    private final JobEventPublisher jobEventPublisher;
+    private final OutboxEventRepository outboxEventRepository;
 
     public JobService(
             JobRepository jobRepository,
-            JobEventPublisher jobEventPublisher
+            OutboxEventRepository outboxEventRepository
     ) {
         this.jobRepository = jobRepository;
-        this.jobEventPublisher = jobEventPublisher;
+        this.outboxEventRepository = outboxEventRepository;
     }
 
     public JobResponse getJob(UUID id) {
@@ -43,8 +45,8 @@ public class JobService {
         );
     }
 
+    @Transactional
     public CreateJobResponse createJob(CreateJobRequest request) {
-
         Job job = new Job(
                 UUID.randomUUID(),
                 request.jobType(),
@@ -57,9 +59,19 @@ public class JobService {
 
         jobRepository.save(job);
 
-        jobEventPublisher.publish(
-                new JobCreatedEvent(job.getId(), job.getJobType())
+        String eventPayload = """
+                {"jobId":"%s","jobType":"%s"}
+                """.formatted(job.getId(), job.getJobType()).trim();
+
+        OutboxEvent outboxEvent = new OutboxEvent(
+                UUID.randomUUID(),
+                job.getId(),
+                "JOB_CREATED",
+                eventPayload,
+                Instant.now()
         );
+
+        outboxEventRepository.save(outboxEvent);
 
         return new CreateJobResponse(
                 job.getId(),
