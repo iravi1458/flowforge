@@ -27,7 +27,10 @@ public class JobController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CreateJobResponse createJob(@Valid @RequestBody CreateJobRequest request) {
-        return jobService.createJob(request);
+    public CreateJobResponse createJob(
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @Valid @RequestBody CreateJobRequest request
+    ) {
+        return jobService.createJob(request, idempotencyKey);
     }
 }

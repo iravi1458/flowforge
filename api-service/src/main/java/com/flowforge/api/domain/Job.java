@@ -35,6 +35,9 @@ public class Job {
     @Column(name = "scheduled_at")
     private Instant scheduledAt;
 
+    @Column(name = "idempotency_key")
+    private String idempotencyKey;
+
     protected Job() {
     }
 
@@ -88,5 +91,13 @@ public class Job {
 
     public Instant getScheduledAt() {
         return scheduledAt;
+    }
+
+    public String getIdempotencyKey() {
+        return idempotencyKey;
+    }
+
+    public void setIdempotencyKey(String idempotencyKey) {
+        this.idempotencyKey = idempotencyKey;
     }
 }

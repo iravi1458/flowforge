@@ -1,33 +1,28 @@
 package com.flowforge.api.service;
 
 import com.flowforge.api.domain.Job;
-import com.flowforge.api.domain.JobStatus;
 import com.flowforge.api.dto.CreateJobRequest;
 import com.flowforge.api.dto.CreateJobResponse;
 import com.flowforge.api.dto.JobResponse;
-import com.flowforge.api.event.OutboxEvent;
 import com.flowforge.api.exception.JobNotFoundException;
 import com.flowforge.api.repository.JobRepository;
-import com.flowforge.api.repository.OutboxEventRepository;
-
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.UUID;
 
 @Service
 public class JobService {
 
     private final JobRepository jobRepository;
-    private final OutboxEventRepository outboxEventRepository;
+    private final JobCreationService jobCreationService;
 
     public JobService(
             JobRepository jobRepository,
-            OutboxEventRepository outboxEventRepository
+            JobCreationService jobCreationService
     ) {
         this.jobRepository = jobRepository;
-        this.outboxEventRepository = outboxEventRepository;
+        this.jobCreationService = jobCreationService;
     }
 
     public JobResponse getJob(UUID id) {
@@ -45,41 +40,47 @@ public class JobService {
         );
     }
 
-    @Transactional
-    public CreateJobResponse createJob(CreateJobRequest request) {
-        JobStatus initialStatus =
-                request.scheduledAt() == null ? JobStatus.QUEUED : JobStatus.SCHEDULED;
+    public CreateJobResponse createJob(
+            CreateJobRequest request,
+            String idempotencyKey
+    ) {
+        String normalizedIdempotencyKey =
+                idempotencyKey == null || idempotencyKey.isBlank()
+                        ? null
+                        : idempotencyKey.trim();
 
-        Job job = new Job(
-                UUID.randomUUID(),
-                request.jobType(),
-                initialStatus,
-                request.payload(),
-                0,
-                request.maxAttempts(),
-                Instant.now(),
-                request.scheduledAt()
-        );
+        if (normalizedIdempotencyKey != null) {
+            var existingJob =
+                    jobRepository.findByIdempotencyKey(normalizedIdempotencyKey);
 
-        jobRepository.save(job);
+            if (existingJob.isPresent()) {
+                Job job = existingJob.get();
 
-        String eventPayload = """
-                {"jobId":"%s","jobType":"%s"}
-                """.formatted(job.getId(), job.getJobType()).trim();
+                return new CreateJobResponse(
+                        job.getId(),
+                        job.getStatus()
+                );
+            }
+        }
 
-        OutboxEvent outboxEvent = new OutboxEvent(
-                UUID.randomUUID(),
-                job.getId(),
-                "JOB_CREATED",
-                eventPayload,
-                Instant.now()
-        );
+        try {
+            return jobCreationService.createNewJob(
+                    request,
+                    normalizedIdempotencyKey
+            );
+        } catch (DataIntegrityViolationException exception) {
+            if (normalizedIdempotencyKey == null) {
+                throw exception;
+            }
 
-        outboxEventRepository.save(outboxEvent);
+            Job existingJob = jobRepository
+                    .findByIdempotencyKey(normalizedIdempotencyKey)
+                    .orElseThrow(() -> exception);
 
-        return new CreateJobResponse(
-                job.getId(),
-                job.getStatus()
-        );
+            return new CreateJobResponse(
+                    existingJob.getId(),
+                    existingJob.getStatus()
+            );
+        }
     }
 }
