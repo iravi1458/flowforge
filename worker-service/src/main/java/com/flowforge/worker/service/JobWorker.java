@@ -21,17 +21,20 @@ public class JobWorker {
     private final JobAttemptRepository jobAttemptRepository;
     private final JobDlqPublisher jobDlqPublisher;
     private final JobClaimService jobClaimService;
+    private final ExecutionIdempotencyService executionIdempotencyService;
 
     public JobWorker(
             JobRepository jobRepository,
             JobAttemptRepository jobAttemptRepository,
             JobDlqPublisher jobDlqPublisher,
-            JobClaimService jobClaimService
+            JobClaimService jobClaimService,
+            ExecutionIdempotencyService executionIdempotencyService
     ) {
         this.jobRepository = jobRepository;
         this.jobAttemptRepository = jobAttemptRepository;
         this.jobDlqPublisher = jobDlqPublisher;
         this.jobClaimService = jobClaimService;
+        this.executionIdempotencyService = executionIdempotencyService;
     }
 
     @Scheduled(fixedDelay = 5000)
@@ -80,6 +83,17 @@ public class JobWorker {
     }
 
     private void executeJob(Job job) {
+        boolean firstExecution = executionIdempotencyService.claimEffect(
+                job.getId(),
+                "PRIMARY_EFFECT"
+        );
+
+        if (firstExecution) {
+            System.out.println("Applied execution effect: " + job.getId());
+        } else {
+            System.out.println("Skipped duplicate execution effect: " + job.getId());
+        }
+
         if ("force-failure".equals(job.getPayload())) {
             throw new RuntimeException("Simulated job failure");
         }
