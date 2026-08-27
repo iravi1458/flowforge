@@ -3,21 +3,33 @@ package com.flowforge.api.controller;
 import com.flowforge.api.dto.CreateJobRequest;
 import com.flowforge.api.dto.CreateJobResponse;
 import com.flowforge.api.dto.JobResponse;
-
-import java.util.UUID;
 import com.flowforge.api.service.JobService;
-import org.springframework.http.HttpStatus;
+import com.flowforge.api.service.RateLimitService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.time.Duration;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/jobs")
 public class JobController {
 
-    private final JobService jobService;
+    private static final int CREATE_JOB_LIMIT = 10;
+    private static final Duration CREATE_JOB_WINDOW = Duration.ofMinutes(1);
 
-    public JobController(JobService jobService) {
+    private final JobService jobService;
+    private final RateLimitService rateLimitService;
+
+    public JobController(
+            JobService jobService,
+            RateLimitService rateLimitService
+    ) {
         this.jobService = jobService;
+        this.rateLimitService = rateLimitService;
     }
 
     @GetMapping("/{id}")
@@ -29,8 +41,23 @@ public class JobController {
     @ResponseStatus(HttpStatus.CREATED)
     public CreateJobResponse createJob(
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
-            @Valid @RequestBody CreateJobRequest request
+            @Valid @RequestBody CreateJobRequest request,
+            HttpServletRequest servletRequest
     ) {
+        String clientIp = servletRequest.getRemoteAddr();
+        String rateLimitKey = "rate-limit:jobs:create:" + clientIp;
+
+        if (!rateLimitService.isAllowed(
+                rateLimitKey,
+                CREATE_JOB_LIMIT,
+                CREATE_JOB_WINDOW
+        )) {
+            throw new ResponseStatusException(
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    "Job creation rate limit exceeded"
+            );
+        }
+
         return jobService.createJob(request, idempotencyKey);
     }
 }
