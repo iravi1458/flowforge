@@ -50,6 +50,13 @@ services:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
 
+  jaeger:
+    image: cr.jaegertracing.io/jaegertracing/jaeger:2.20.0
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "16686:16686"
+
 volumes:
   postgres_data:
   grafana_data:
