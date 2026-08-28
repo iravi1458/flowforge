@@ -57,6 +57,55 @@ services:
       - "4318:4318"
       - "16686:16686"
 
+
+  api:
+    build:
+      context: ./api-service
+    image: flowforge-api:local
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flowforge
+      SPRING_DATASOURCE_USERNAME: flowforge
+      SPRING_DATASOURCE_PASSWORD: flowforge
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+    depends_on:
+      - postgres
+      - kafka
+      - redis
+      - jaeger
+
+  worker:
+    build:
+      context: ./worker-service
+    image: flowforge-worker:local
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flowforge
+      SPRING_DATASOURCE_USERNAME: flowforge
+      SPRING_DATASOURCE_PASSWORD: flowforge
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    depends_on:
+      - postgres
+      - kafka
+
+  scheduler:
+    build:
+      context: ./scheduler-service
+    image: flowforge-scheduler:local
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flowforge
+      SPRING_DATASOURCE_USERNAME: flowforge
+      SPRING_DATASOURCE_PASSWORD: flowforge
+    depends_on:
+      - postgres
+
 volumes:
   postgres_data:
   grafana_data:
