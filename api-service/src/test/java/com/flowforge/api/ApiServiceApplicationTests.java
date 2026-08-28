@@ -82,4 +82,35 @@ class ApiServiceApplicationTests {
                 .andExpect(jsonPath("$.attemptCount").value(0))
                 .andExpect(jsonPath("$.maxAttempts").value(3));
     }
+
+    @Test
+    void getMissingJobReturns404() throws Exception {
+        mockMvc.perform(get(
+                        "/api/v1/jobs/{id}",
+                        "00000000-0000-0000-0000-000000000001"
+                ))
+                .andExpect(status().isNotFound());
+    }
+
+
+    @Test
+    void createJobWithInvalidMaxAttemptsReturns400() throws Exception {
+        when(rateLimitService.isAllowed(
+                anyString(),
+                anyInt(),
+                any()
+        )).thenReturn(true);
+
+        mockMvc.perform(post("/api/v1/jobs")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "jobType": "GENERATE_REPORT",
+                                  "payload": "invalid-test",
+                                  "maxAttempts": 0
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
 }
