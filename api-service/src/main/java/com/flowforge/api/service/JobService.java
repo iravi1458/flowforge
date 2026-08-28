@@ -6,9 +6,11 @@ import com.flowforge.api.dto.CreateJobResponse;
 import com.flowforge.api.dto.JobResponse;
 import com.flowforge.api.exception.JobNotFoundException;
 import com.flowforge.api.repository.JobRepository;
+
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -23,6 +25,21 @@ public class JobService {
     ) {
         this.jobRepository = jobRepository;
         this.jobCreationService = jobCreationService;
+    }
+
+    public List<JobResponse> getJobs() {
+        return jobRepository.findTop50ByOrderByCreatedAtDesc()
+                .stream()
+                .map(job -> new JobResponse(
+                        job.getId(),
+                        job.getJobType(),
+                        job.getStatus(),
+                        job.getPayload(),
+                        job.getAttemptCount(),
+                        job.getMaxAttempts(),
+                        job.getCreatedAt()
+                ))
+                .toList();
     }
 
     public JobResponse getJob(UUID id) {

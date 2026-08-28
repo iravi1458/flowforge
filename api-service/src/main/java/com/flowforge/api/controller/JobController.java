@@ -5,13 +5,16 @@ import com.flowforge.api.dto.CreateJobResponse;
 import com.flowforge.api.dto.JobResponse;
 import com.flowforge.api.service.JobService;
 import com.flowforge.api.service.RateLimitService;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -30,6 +33,11 @@ public class JobController {
     ) {
         this.jobService = jobService;
         this.rateLimitService = rateLimitService;
+    }
+
+    @GetMapping
+    public List<JobResponse> getJobs() {
+        return jobService.getJobs();
     }
 
     @GetMapping("/{id}")
