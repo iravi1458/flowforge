@@ -42,7 +42,8 @@ public class JobService {
                         job.getPayload(),
                         job.getAttemptCount(),
                         job.getMaxAttempts(),
-                        job.getCreatedAt()
+                        job.getCreatedAt(),
+                        job.getScheduledAt()
                 ))
                 .toList();
     }
@@ -58,7 +59,8 @@ public class JobService {
                 job.getPayload(),
                 job.getAttemptCount(),
                 job.getMaxAttempts(),
-                job.getCreatedAt()
+                job.getCreatedAt(),
+                job.getScheduledAt()
         );
     }
 

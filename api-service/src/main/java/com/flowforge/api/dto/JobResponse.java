@@ -13,6 +13,7 @@ public record JobResponse(
     String payload,
     int attemptCount,
     int maxAttempts,
-    Instant createdAt
+    Instant createdAt,
+    Instant scheduledAt
 ) {
 }

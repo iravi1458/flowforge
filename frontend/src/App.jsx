@@ -3,6 +3,7 @@ import './App.css'
 import JobDetailsModal from './JobDetailsModal'
 
 function App() {
+  const [activePage, setActivePage] = useState('dashboard')
   const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -92,6 +93,8 @@ function App() {
   const running = jobs.filter((job) => job.status === 'RUNNING').length
   const succeeded = jobs.filter((job) => job.status === 'SUCCEEDED').length
   const failed = jobs.filter((job) => job.status === 'FAILED').length
+  const scheduledJobs = jobs.filter((job) => job.scheduledAt)
+  const visibleJobs = activePage === 'scheduled' ? scheduledJobs : jobs
 
   return (
     <div className="app">
@@ -102,18 +105,51 @@ function App() {
         </div>
 
         <nav>
-          <button className="nav-item active">Dashboard</button>
-          <button className="nav-item">Jobs</button>
-          <button className="nav-item">Scheduled</button>
-          <button className="nav-item">Dead Letter Queue</button>
+          <button
+            className={`nav-item ${activePage === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setActivePage('dashboard')}
+          >
+            Dashboard
+          </button>
+
+          <button
+            className={`nav-item ${activePage === 'jobs' ? 'active' : ''}`}
+            onClick={() => setActivePage('jobs')}
+          >
+            Jobs
+          </button>
+
+          <button
+            className={`nav-item ${activePage === 'scheduled' ? 'active' : ''}`}
+            onClick={() => setActivePage('scheduled')}
+          >
+            Scheduled
+          </button>
+
+          <button
+            className={`nav-item ${activePage === 'dlq' ? 'active' : ''}`}
+            onClick={() => setActivePage('dlq')}
+          >
+            Dead Letter Queue
+          </button>
         </nav>
       </aside>
 
       <main className="main">
         <header className="header">
           <div>
-            <h1>Dashboard</h1>
-            <p>Distributed job execution overview</p>
+            <h1>
+              {activePage === 'dashboard' && 'Dashboard'}
+              {activePage === 'jobs' && 'Jobs'}
+              {activePage === 'scheduled' && 'Scheduled Jobs'}
+              {activePage === 'dlq' && 'Dead Letter Queue'}
+            </h1>
+            <p>
+              {activePage === 'dashboard' && 'Distributed job execution overview'}
+              {activePage === 'jobs' && 'All jobs processed by FlowForge'}
+              {activePage === 'scheduled' && 'Jobs submitted for delayed execution'}
+              {activePage === 'dlq' && 'Permanently failed jobs'}
+            </p>
           </div>
 
           <button
@@ -149,8 +185,12 @@ function App() {
         <section className="panel">
           <div className="panel-header">
             <div>
-              <h2>Recent Jobs</h2>
-              <p>Latest jobs processed by FlowForge</p>
+              <h2>{activePage === 'scheduled' ? 'Scheduled Jobs' : 'Recent Jobs'}</h2>
+              <p>
+                {activePage === 'scheduled'
+                  ? 'Jobs submitted for delayed execution'
+                  : 'Latest jobs processed by FlowForge'}
+              </p>
             </div>
           </div>
 
@@ -161,7 +201,7 @@ function App() {
                 <th>Type</th>
                 <th>Status</th>
                 <th>Attempts</th>
-                <th>Created</th>
+                <th>{activePage === 'scheduled' ? 'Scheduled For' : 'Created'}</th>
               </tr>
             </thead>
 
@@ -184,13 +224,17 @@ function App() {
 
               {!loading &&
                 !error &&
-                jobs.slice(0, 50).map((job) => (
+                visibleJobs.slice(0, 50).map((job) => (
                   <tr key={job.id} className="job-row" onClick={() => openJob(job)}>
                     <td>{job.id.slice(0, 8)}...</td>
                     <td>{job.jobType}</td>
                     <td>{job.status}</td>
                     <td>{job.attemptCount}/{job.maxAttempts}</td>
-                    <td>{new Date(job.createdAt).toLocaleString()}</td>
+                    <td>
+                      {new Date(
+                        activePage === 'scheduled' ? job.scheduledAt : job.createdAt
+                      ).toLocaleString()}
+                    </td>
                   </tr>
                 ))}
             </tbody>
