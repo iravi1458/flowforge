@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import './App.css'
+import JobDetailsModal from './JobDetailsModal'
 
 function App() {
   const [jobs, setJobs] = useState([])
@@ -10,6 +11,9 @@ function App() {
   const [payload, setPayload] = useState('')
   const [maxAttempts, setMaxAttempts] = useState(3)
   const [creating, setCreating] = useState(false)
+  const [selectedJob, setSelectedJob] = useState(null)
+  const [attempts, setAttempts] = useState([])
+  const [attemptsLoading, setAttemptsLoading] = useState(false)
 
   const loadJobs = useCallback(async () => {
     try {
@@ -32,6 +36,26 @@ function App() {
   useEffect(() => {
     loadJobs()
   }, [loadJobs])
+
+  async function openJob(job) {
+    setSelectedJob(job)
+    setAttempts([])
+    setAttemptsLoading(true)
+
+    try {
+      const response = await fetch(`/api/v1/jobs/${job.id}/attempts`)
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+
+      setAttempts(await response.json())
+    } catch (err) {
+      setError(`Could not load attempts: ${err.message}`)
+    } finally {
+      setAttemptsLoading(false)
+    }
+  }
 
   async function createJob(event) {
     event.preventDefault()
@@ -160,8 +184,8 @@ function App() {
 
               {!loading &&
                 !error &&
-                jobs.slice(0, 10).map((job) => (
-                  <tr key={job.id}>
+                jobs.slice(0, 50).map((job) => (
+                  <tr key={job.id} className="job-row" onClick={() => openJob(job)}>
                     <td>{job.id.slice(0, 8)}...</td>
                     <td>{job.jobType}</td>
                     <td>{job.status}</td>
@@ -173,6 +197,13 @@ function App() {
           </table>
         </section>
       </main>
+
+      <JobDetailsModal
+        job={selectedJob}
+        attempts={attempts}
+        loading={attemptsLoading}
+        onClose={() => setSelectedJob(null)}
+      />
 
       {showCreate && (
         <div className="modal-backdrop">

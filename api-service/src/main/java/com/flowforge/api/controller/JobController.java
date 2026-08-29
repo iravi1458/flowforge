@@ -3,6 +3,7 @@ package com.flowforge.api.controller;
 import com.flowforge.api.dto.CreateJobRequest;
 import com.flowforge.api.dto.CreateJobResponse;
 import com.flowforge.api.dto.JobResponse;
+import com.flowforge.api.dto.JobAttemptResponse;
 import com.flowforge.api.service.JobService;
 import com.flowforge.api.service.RateLimitService;
 
@@ -38,6 +39,11 @@ public class JobController {
     @GetMapping
     public List<JobResponse> getJobs() {
         return jobService.getJobs();
+    }
+
+    @GetMapping("/{id}/attempts")
+    public List<JobAttemptResponse> getJobAttempts(@PathVariable UUID id) {
+        return jobService.getJobAttempts(id);
     }
 
     @GetMapping("/{id}")

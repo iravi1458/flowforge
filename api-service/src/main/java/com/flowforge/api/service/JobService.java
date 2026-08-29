@@ -3,8 +3,10 @@ package com.flowforge.api.service;
 import com.flowforge.api.domain.Job;
 import com.flowforge.api.dto.CreateJobRequest;
 import com.flowforge.api.dto.CreateJobResponse;
+import com.flowforge.api.dto.JobAttemptResponse;
 import com.flowforge.api.dto.JobResponse;
 import com.flowforge.api.exception.JobNotFoundException;
+import com.flowforge.api.repository.JobAttemptRepository;
 import com.flowforge.api.repository.JobRepository;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -17,13 +19,16 @@ import java.util.UUID;
 public class JobService {
 
     private final JobRepository jobRepository;
+    private final JobAttemptRepository jobAttemptRepository;
     private final JobCreationService jobCreationService;
 
     public JobService(
             JobRepository jobRepository,
+            JobAttemptRepository jobAttemptRepository,
             JobCreationService jobCreationService
     ) {
         this.jobRepository = jobRepository;
+        this.jobAttemptRepository = jobAttemptRepository;
         this.jobCreationService = jobCreationService;
     }
 
@@ -55,6 +60,25 @@ public class JobService {
                 job.getMaxAttempts(),
                 job.getCreatedAt()
         );
+    }
+
+    public List<JobAttemptResponse> getJobAttempts(UUID id) {
+        if (!jobRepository.existsById(id)) {
+            throw new JobNotFoundException(id);
+        }
+
+        return jobAttemptRepository.findByJobIdOrderByAttemptNumberAsc(id)
+                .stream()
+                .map(attempt -> new JobAttemptResponse(
+                        attempt.getId(),
+                        attempt.getJobId(),
+                        attempt.getAttemptNumber(),
+                        attempt.getStatus(),
+                        attempt.getStartedAt(),
+                        attempt.getFinishedAt(),
+                        attempt.getErrorMessage()
+                ))
+                .toList();
     }
 
     public CreateJobResponse createJob(
