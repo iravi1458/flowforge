@@ -5,6 +5,7 @@ import JobDetailsModal from './JobDetailsModal'
 function App() {
   const [activePage, setActivePage] = useState('dashboard')
   const [jobs, setJobs] = useState([])
+  const [deadLetterJobs, setDeadLetterJobs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showCreate, setShowCreate] = useState(false)
@@ -37,6 +38,24 @@ function App() {
   useEffect(() => {
     loadJobs()
   }, [loadJobs])
+
+  useEffect(() => {
+    async function loadDeadLetterJobs() {
+      try {
+        const response = await fetch('/api/v1/dlq')
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`)
+        }
+
+        setDeadLetterJobs(await response.json())
+      } catch (err) {
+        setError(`Could not load DLQ: ${err.message}`)
+      }
+    }
+
+    loadDeadLetterJobs()
+  }, [])
 
   async function openJob(job) {
     setSelectedJob(job)
@@ -185,58 +204,102 @@ function App() {
         <section className="panel">
           <div className="panel-header">
             <div>
-              <h2>{activePage === 'scheduled' ? 'Scheduled Jobs' : 'Recent Jobs'}</h2>
+              <h2>
+                {activePage === 'dlq'
+                  ? 'Dead Letter Queue'
+                  : activePage === 'scheduled'
+                    ? 'Scheduled Jobs'
+                    : 'Recent Jobs'}
+              </h2>
               <p>
-                {activePage === 'scheduled'
-                  ? 'Jobs submitted for delayed execution'
-                  : 'Latest jobs processed by FlowForge'}
+                {activePage === 'dlq'
+                  ? 'Jobs that exhausted all retry attempts'
+                  : activePage === 'scheduled'
+                    ? 'Jobs submitted for delayed execution'
+                    : 'Latest jobs processed by FlowForge'}
               </p>
             </div>
           </div>
 
           <table>
             <thead>
-              <tr>
-                <th>Job ID</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Attempts</th>
-                <th>{activePage === 'scheduled' ? 'Scheduled For' : 'Created'}</th>
-              </tr>
+              {activePage === 'dlq' ? (
+                <tr>
+                  <th>Job ID</th>
+                  <th>Attempts</th>
+                  <th>Error</th>
+                  <th>Dead Lettered</th>
+                </tr>
+              ) : (
+                <tr>
+                  <th>Job ID</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Attempts</th>
+                  <th>{activePage === 'scheduled' ? 'Scheduled For' : 'Created'}</th>
+                </tr>
+              )}
             </thead>
 
             <tbody>
-              {loading && (
-                <tr>
-                  <td colSpan="5" className="empty-state">
-                    Loading jobs...
-                  </td>
-                </tr>
-              )}
-
-              {error && (
-                <tr>
-                  <td colSpan="5" className="empty-state">
-                    {error}
-                  </td>
-                </tr>
-              )}
-
-              {!loading &&
-                !error &&
-                visibleJobs.slice(0, 50).map((job) => (
-                  <tr key={job.id} className="job-row" onClick={() => openJob(job)}>
-                    <td>{job.id.slice(0, 8)}...</td>
-                    <td>{job.jobType}</td>
-                    <td>{job.status}</td>
-                    <td>{job.attemptCount}/{job.maxAttempts}</td>
-                    <td>
-                      {new Date(
-                        activePage === 'scheduled' ? job.scheduledAt : job.createdAt
-                      ).toLocaleString()}
+              {activePage === 'dlq' ? (
+                deadLetterJobs.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" className="empty-state">
+                      No dead-letter jobs found.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  deadLetterJobs.map((entry) => (
+                    <tr key={entry.id}>
+                      <td>{entry.jobId.slice(0, 8)}...</td>
+                      <td>{entry.attemptCount}</td>
+                      <td>{entry.errorMessage || '—'}</td>
+                      <td>{new Date(entry.createdAt).toLocaleString()}</td>
+                    </tr>
+                  ))
+                )
+              ) : (
+                <>
+                  {loading && (
+                    <tr>
+                      <td colSpan="5" className="empty-state">
+                        Loading jobs...
+                      </td>
+                    </tr>
+                  )}
+
+                  {error && (
+                    <tr>
+                      <td colSpan="5" className="empty-state">
+                        {error}
+                      </td>
+                    </tr>
+                  )}
+
+                  {!loading &&
+                    !error &&
+                    visibleJobs.slice(0, 50).map((job) => (
+                      <tr
+                        key={job.id}
+                        className="job-row"
+                        onClick={() => openJob(job)}
+                      >
+                        <td>{job.id.slice(0, 8)}...</td>
+                        <td>{job.jobType}</td>
+                        <td>{job.status}</td>
+                        <td>{job.attemptCount}/{job.maxAttempts}</td>
+                        <td>
+                          {new Date(
+                            activePage === 'scheduled'
+                              ? job.scheduledAt
+                              : job.createdAt
+                          ).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                </>
+              )}
             </tbody>
           </table>
         </section>

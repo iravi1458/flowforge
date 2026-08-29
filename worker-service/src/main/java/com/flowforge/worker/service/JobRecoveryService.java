@@ -2,7 +2,6 @@ package com.flowforge.worker.service;
 
 import com.flowforge.worker.domain.Job;
 import com.flowforge.worker.domain.JobAttempt;
-import com.flowforge.worker.event.JobDlqPublisher;
 import com.flowforge.worker.repository.JobAttemptRepository;
 import com.flowforge.worker.repository.JobRepository;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -14,16 +13,16 @@ public class JobRecoveryService {
 
     private final JobRepository jobRepository;
     private final JobAttemptRepository jobAttemptRepository;
-    private final JobDlqPublisher jobDlqPublisher;
+    private final DeadLetterService deadLetterService;
 
     public JobRecoveryService(
             JobRepository jobRepository,
             JobAttemptRepository jobAttemptRepository,
-            JobDlqPublisher jobDlqPublisher
+            DeadLetterService deadLetterService
     ) {
         this.jobRepository = jobRepository;
         this.jobAttemptRepository = jobAttemptRepository;
-        this.jobDlqPublisher = jobDlqPublisher;
+        this.deadLetterService = deadLetterService;
     }
 
     @Scheduled(fixedDelay = 5000)
@@ -46,7 +45,7 @@ public class JobRecoveryService {
             System.out.println("Recovered expired job lease: " + job.getId());
         } else {
             job.markFailed();
-            jobDlqPublisher.publish(job, "Worker lease expired");
+            deadLetterService.sendToDeadLetterQueue(job, "Worker lease expired");
             System.out.println("Expired job exhausted all attempts and sent to DLQ: " + job.getId());
         }
 

@@ -2,7 +2,6 @@ package com.flowforge.worker.service;
 
 import com.flowforge.worker.domain.Job;
 import com.flowforge.worker.domain.JobAttempt;
-import com.flowforge.worker.event.JobDlqPublisher;
 import com.flowforge.worker.repository.JobAttemptRepository;
 import com.flowforge.worker.repository.JobRepository;
 
@@ -19,20 +18,20 @@ public class JobWorker {
 
     private final JobRepository jobRepository;
     private final JobAttemptRepository jobAttemptRepository;
-    private final JobDlqPublisher jobDlqPublisher;
+    private final DeadLetterService deadLetterService;
     private final JobClaimService jobClaimService;
     private final ExecutionIdempotencyService executionIdempotencyService;
 
     public JobWorker(
             JobRepository jobRepository,
             JobAttemptRepository jobAttemptRepository,
-            JobDlqPublisher jobDlqPublisher,
+            DeadLetterService deadLetterService,
             JobClaimService jobClaimService,
             ExecutionIdempotencyService executionIdempotencyService
     ) {
         this.jobRepository = jobRepository;
         this.jobAttemptRepository = jobAttemptRepository;
-        this.jobDlqPublisher = jobDlqPublisher;
+        this.deadLetterService = deadLetterService;
         this.jobClaimService = jobClaimService;
         this.executionIdempotencyService = executionIdempotencyService;
     }
@@ -73,7 +72,7 @@ public class JobWorker {
                 System.out.println("Job failed; re-queued: " + job.getId());
             } else {
                 job.markFailed();
-                jobDlqPublisher.publish(job, e.getMessage());
+                deadLetterService.sendToDeadLetterQueue(job, e.getMessage());
                 System.out.println("Job failed permanently and sent to DLQ: " + job.getId());
             }
         }
