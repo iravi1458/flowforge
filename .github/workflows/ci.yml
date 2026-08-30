@@ -32,7 +32,12 @@ jobs:
 
       - name: Run tests
         working-directory: ${{ matrix.service }}
-        run: ./mvnw test
+        run: |
+          if [ -x ./mvnw ]; then
+            ./mvnw test
+          else
+            mvn test
+          fi
 
   frontend:
     name: Frontend Build
