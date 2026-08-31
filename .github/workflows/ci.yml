@@ -50,6 +50,15 @@ jobs:
           cache: maven
           cache-dependency-path: ${{ matrix.service }}/pom.xml
 
+      - name: Initialize shared database schema
+        if: matrix.service != 'api-service'
+        env:
+          PGPASSWORD: flowforge
+        run: |
+          for migration in api-service/src/main/resources/db/migration/*.sql; do
+            psql -h localhost -U flowforge -d flowforge -v ON_ERROR_STOP=1 -f "$migration"
+          done
+
       - name: Run tests
         working-directory: ${{ matrix.service }}
         run: |
