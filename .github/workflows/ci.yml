@@ -11,6 +11,26 @@ jobs:
     name: Backend Tests
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: flowforge
+          POSTGRES_USER: flowforge
+          POSTGRES_PASSWORD: flowforge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U flowforge -d flowforge"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/flowforge
+      SPRING_DATASOURCE_USERNAME: flowforge
+      SPRING_DATASOURCE_PASSWORD: flowforge
+
     strategy:
       matrix:
         service:
