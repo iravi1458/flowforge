@@ -51,6 +51,11 @@ public class JobController {
         return jobService.getJob(id);
     }
 
+    @PostMapping("/{id}/cancel")
+    public JobResponse cancelJob(@PathVariable UUID id) {
+        return jobService.cancelJob(id);
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public CreateJobResponse createJob(

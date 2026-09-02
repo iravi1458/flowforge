@@ -97,6 +97,15 @@ public class Job {
         return idempotencyKey;
     }
 
+    public boolean cancel() {
+        if (status != JobStatus.SCHEDULED && status != JobStatus.QUEUED) {
+            return false;
+        }
+
+        status = JobStatus.CANCELLED;
+        return true;
+    }
+
     public void setIdempotencyKey(String idempotencyKey) {
         this.idempotencyKey = idempotencyKey;
     }

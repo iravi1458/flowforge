@@ -123,4 +123,51 @@ class ApiServiceApplicationTests {
                 .andExpect(status().isUnauthorized());
     }
 
+
+    @Test
+    void scheduledJobCanBeCancelled() throws Exception {
+        when(rateLimitService.isAllowed(
+                anyString(),
+                anyInt(),
+                any()
+        )).thenReturn(true);
+
+        String response = mockMvc.perform(post("/api/v1/jobs")
+                        .header("X-API-Key", "dev-flowforge-key")
+                        .header("Idempotency-Key", "cancel-test-key")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "jobType": "GENERATE_REPORT",
+                                  "payload": "cancel-test",
+                                  "maxAttempts": 3,
+                                  "scheduledAt": "2099-01-01T00:00:00Z"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("SCHEDULED"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String jobId = new tools.jackson.databind.ObjectMapper()
+                .readTree(response)
+                .get("jobId")
+                .asText();
+
+        mockMvc.perform(post("/api/v1/jobs/{id}/cancel", jobId)
+                        .header("X-API-Key", "dev-flowforge-key"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELLED"));
+
+        mockMvc.perform(get("/api/v1/jobs/{id}", jobId)
+                        .header("X-API-Key", "dev-flowforge-key"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELLED"));
+
+        mockMvc.perform(post("/api/v1/jobs/{id}/cancel", jobId)
+                        .header("X-API-Key", "dev-flowforge-key"))
+                .andExpect(status().isConflict());
+    }
+
 }

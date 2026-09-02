@@ -6,11 +6,13 @@ import com.flowforge.api.dto.CreateJobResponse;
 import com.flowforge.api.dto.JobAttemptResponse;
 import com.flowforge.api.dto.JobResponse;
 import com.flowforge.api.exception.JobNotFoundException;
+import com.flowforge.api.exception.JobCancellationException;
 import com.flowforge.api.repository.JobAttemptRepository;
 import com.flowforge.api.repository.JobRepository;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -81,6 +83,27 @@ public class JobService {
                         attempt.getErrorMessage()
                 ))
                 .toList();
+    }
+
+    @Transactional
+    public JobResponse cancelJob(UUID id) {
+        Job job = jobRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new JobNotFoundException(id));
+
+        if (!job.cancel()) {
+            throw new JobCancellationException(id);
+        }
+
+        return new JobResponse(
+                job.getId(),
+                job.getJobType(),
+                job.getStatus(),
+                job.getPayload(),
+                job.getAttemptCount(),
+                job.getMaxAttempts(),
+                job.getCreatedAt(),
+                job.getScheduledAt()
+        );
     }
 
     public CreateJobResponse createJob(
