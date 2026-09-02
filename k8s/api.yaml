@@ -38,6 +38,11 @@ spec:
               value: redis
             - name: SPRING_DATA_REDIS_PORT
               value: "6379"
+            - name: FLOWFORGE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: flowforge-api-auth
+                  key: FLOWFORGE_API_KEY
 ---
 apiVersion: v1
 kind: Service

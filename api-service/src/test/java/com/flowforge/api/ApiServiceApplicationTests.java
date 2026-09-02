@@ -53,6 +53,7 @@ class ApiServiceApplicationTests {
         )).thenReturn(true);
 
         String response = mockMvc.perform(post("/api/v1/jobs")
+                        .header("X-API-Key", "dev-flowforge-key")
                         .header("Idempotency-Key", "integration-test-key")
                         .contentType("application/json")
                         .content("""
@@ -73,7 +74,8 @@ class ApiServiceApplicationTests {
                 .get("jobId")
                 .asText();
 
-        mockMvc.perform(get("/api/v1/jobs/{id}", jobId))
+        mockMvc.perform(get("/api/v1/jobs/{id}", jobId)
+                        .header("X-API-Key", "dev-flowforge-key"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(jobId))
                 .andExpect(jsonPath("$.jobType").value("GENERATE_REPORT"))
@@ -88,7 +90,7 @@ class ApiServiceApplicationTests {
         mockMvc.perform(get(
                         "/api/v1/jobs/{id}",
                         "00000000-0000-0000-0000-000000000001"
-                ))
+                ).header("X-API-Key", "dev-flowforge-key"))
                 .andExpect(status().isNotFound());
     }
 
@@ -102,6 +104,7 @@ class ApiServiceApplicationTests {
         )).thenReturn(true);
 
         mockMvc.perform(post("/api/v1/jobs")
+                        .header("X-API-Key", "dev-flowforge-key")
                         .contentType("application/json")
                         .content("""
                                 {
@@ -111,6 +114,13 @@ class ApiServiceApplicationTests {
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
+    }
+
+
+    @Test
+    void apiRequestWithoutApiKeyReturns401() throws Exception {
+        mockMvc.perform(get("/api/v1/jobs"))
+                .andExpect(status().isUnauthorized());
     }
 
 }
